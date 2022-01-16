@@ -15,4 +15,5 @@
 # vendor/
 
 nonfree/
+main.wasm
 
