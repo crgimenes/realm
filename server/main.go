@@ -18,10 +18,7 @@ var conn *websocket.Conn
 
 func main() {
 
-	assetsRFS, err := fs.Sub(assets, "assets")
-	if err != nil {
-		log.Fatal(err)
-	}
+	assetsRFS, _ := fs.Sub(assets, "assets")
 	var assetsFS = http.FS(assetsRFS)
 
 	fs := http.FileServer(assetsFS)
@@ -97,7 +94,7 @@ func main() {
 		fs.ServeHTTP(w, r)
 	})
 
-	err = http.ListenAndServe(":8888", mux)
+	err := http.ListenAndServe(":8888", mux)
 	if err != nil {
 		log.Fatal(err)
 	}
