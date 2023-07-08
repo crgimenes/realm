@@ -6,6 +6,7 @@ import (
 	_ "image/png"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -22,18 +23,92 @@ type Game struct {
 	keys []ebiten.Key
 }
 
-const MyMessage = "test test test"
+var (
+	conn   *websocket.Conn
+	tosend = make(chan []byte, 100)
+)
 
-var conn *websocket.Conn
-var i int
+func parseMessage(buffer []byte) error {
+	fmt.Printf("Parse message received: %s\n", buffer)
+	return nil
+}
+
+func receiveLoop() {
+	var (
+		buffer []byte
+		mt     websocket.MessageType
+		err    error
+	)
+
+	for {
+		if conn == nil {
+			return
+		}
+		//Receive
+		mt, buffer, err = conn.Read(context.Background())
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("Message received: %s, message type %d\n", string(buffer), mt)
+
+		//conn.Close(websocket.StatusNormalClosure, "Websocket: normal closure")
+
+		//Parse
+		err = parseMessage(buffer)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	}
+}
+
+func directSend(msg []byte) error {
+	//Send
+
+	if conn == nil {
+		return fmt.Errorf("conn is nil")
+	}
+
+	err := conn.Write(context.Background(), websocket.MessageBinary, msg)
+	if err != nil {
+		fmt.Println(err)
+		conn = nil
+		return err
+	}
+	fmt.Printf("Message send: %s\n", string(msg))
+	return nil
+}
+
+func send(msg []byte) {
+	tosend <- msg
+}
+
+func sendLoop() {
+	var err error
+	for {
+		select {
+		case <-time.After(1 * time.Second):
+			err = directSend([]byte("ping"))
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+		case msg := <-tosend:
+			err = directSend(msg)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+		}
+	}
+}
 
 func (g *Game) Update() error {
 	g.keys = inpututil.AppendPressedKeys(g.keys[:0])
 
-	var (
-		buffer []byte
-		mt     websocket.MessageType
-	)
+	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+		fmt.Println(g.keys)
+	}
 
 	var err error
 
@@ -41,28 +116,16 @@ func (g *Game) Update() error {
 		log.Println("connecting...")
 		conn, _, err = websocket.Dial(context.Background(), "ws://127.0.0.1:8888/ws", nil)
 		if err != nil {
-			panic(err)
+			conn = nil
+			log.Println(err)
+			return nil
 		}
+
+		go receiveLoop()
+		go sendLoop()
 	}
 	//defer conn.Close(websocket.StatusInternalError, "Websocket: internal Error")
 
-	//Send
-	conn.Write(context.Background(), websocket.MessageBinary, []byte(MyMessage))
-	fmt.Printf("Message send: %s\n", MyMessage)
-
-	//Receive
-	mt, buffer, err = conn.Read(context.Background())
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("Message received: %s, message type %d\n", string(buffer), mt)
-	i++
-	if i == 10 {
-		conn.Close(websocket.StatusNormalClosure, "Websocket: normal closure")
-		conn = nil
-		log.Println("Connection closed")
-		i = 0
-	}
 	return nil
 }
 
