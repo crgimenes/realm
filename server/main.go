@@ -73,7 +73,31 @@ func send(conn *websocket.Conn, buffer []byte) error {
 }
 
 func parseMessage(userID string, conn *websocket.Conn, buffer []byte) error {
-	log.Printf("Parsing message: %s\n", string(buffer))
+	if len(buffer) == 0 {
+		return nil
+	}
+
+	p := buffer[0]
+
+	switch p {
+	case '~':
+		buffer[0] = '.' //Replace ~ with .
+		for _, user := range connectedUsers {
+			if user.sessionID == userID {
+				continue
+			}
+			err := send(user.conn, buffer)
+			if err != nil {
+				log.Println(err)
+				removeUser(user.sessionID)
+			}
+		}
+	case '.':
+		log.Printf("Message received: %s\n", string(buffer))
+	default:
+		log.Printf("Unknown message received: %s\n", string(buffer))
+	}
+
 	return nil
 }
 
