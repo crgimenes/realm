@@ -29,7 +29,7 @@ var (
 )
 
 func parseMessage(buffer []byte) error {
-	fmt.Printf("Parse message received: %s\n", buffer)
+	log.Printf("Parse message received: %s\n", buffer)
 	return nil
 }
 
@@ -47,16 +47,18 @@ func receiveLoop() {
 		//Receive
 		mt, buffer, err = conn.Read(context.Background())
 		if err != nil {
-			panic(err)
+			conn = nil
+			log.Println(err)
+			return
 		}
-		fmt.Printf("Message received: %s, message type %d\n", string(buffer), mt)
+		log.Printf("Message received: %s, message type %d\n", string(buffer), mt)
 
 		//conn.Close(websocket.StatusNormalClosure, "Websocket: normal closure")
 
 		//Parse
 		err = parseMessage(buffer)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			return
 		}
 	}
@@ -71,11 +73,11 @@ func directSend(msg []byte) error {
 
 	err := conn.Write(context.Background(), websocket.MessageBinary, msg)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		conn = nil
 		return err
 	}
-	fmt.Printf("Message send: %s\n", string(msg))
+	log.Printf("Message send: %s\n", string(msg))
 	return nil
 }
 
@@ -90,13 +92,13 @@ func sendLoop() {
 		case <-time.After(1 * time.Second):
 			err = directSend([]byte("ping"))
 			if err != nil {
-				fmt.Println(err)
+				log.Println(err)
 				return
 			}
 		case msg := <-tosend:
 			err = directSend(msg)
 			if err != nil {
-				fmt.Println(err)
+				log.Println(err)
 				return
 			}
 		}
@@ -107,7 +109,7 @@ func (g *Game) Update() error {
 	g.keys = inpututil.AppendPressedKeys(g.keys[:0])
 
 	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
-		fmt.Println(g.keys)
+		log.Println(g.keys)
 	}
 
 	var err error
@@ -130,8 +132,9 @@ func (g *Game) Update() error {
 	return nil
 }
 
+var keyStrs = []string{}
+
 func (g *Game) Draw(screen *ebiten.Image) {
-	keyStrs := []string{}
 	for _, p := range g.keys {
 		keyStrs = append(keyStrs, p.String())
 	}

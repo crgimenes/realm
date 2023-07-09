@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"embed"
-	"fmt"
 	"io/fs"
 	"log"
 	"net/http"
@@ -62,14 +61,14 @@ func send(conn *websocket.Conn, buffer []byte) error {
 	)
 	if err != nil {
 		if websocket.CloseStatus(err) == websocket.StatusNormalClosure {
-			fmt.Println("Connection closed normally")
+			log.Println("Connection closed normally")
 			conn = nil
 			return nil
 		}
 		return err
 	}
 
-	fmt.Printf("Message send: %s\n", string(buffer))
+	log.Printf("Message send: %s\n", string(buffer))
 	return nil
 }
 
@@ -130,15 +129,15 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 				conn = nil
 				removeUser(user.sessionID)
 				if websocket.CloseStatus(err) == websocket.StatusNormalClosure {
-					fmt.Println("Connection closed normally")
+					log.Println("Connection closed normally")
 					return
 				}
 				log.Println(err)
 				return
 			}
 			timeElapsed := time.Since(initTime)
-			fmt.Printf("Time elapsed: %s\n", timeElapsed)
-			fmt.Printf("Message received: %s, message type %d\n", string(buffer), mt)
+			log.Printf("Time elapsed: %s\n", timeElapsed)
+			log.Printf("Message received: %s, message type %d\n", string(buffer), mt)
 
 			//Parse
 			err = parseMessage(user.sessionID, conn, buffer)
