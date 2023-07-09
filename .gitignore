@@ -17,4 +17,6 @@
 nonfree/
 main.wasm
 realm-server
+realm-client
+realm-server-linux
 

@@ -114,7 +114,8 @@ func (g *Game) Update() error {
 
 	if conn == nil {
 		log.Println("connecting...")
-		conn, _, err = websocket.Dial(context.Background(), "ws://127.0.0.1:8888/ws", nil)
+		//conn, _, err = websocket.Dial(context.Background(), "ws://127.0.0.1:8888/ws", nil)
+		conn, _, err = websocket.Dial(context.Background(), "wss://sp.crg.eti.br/ws", nil)
 		if err != nil {
 			conn = nil
 			log.Println(err)
