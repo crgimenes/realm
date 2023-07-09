@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Exemplo de sessionStorage</title>
+  </head>
+  <body>
+    <h1>Exemplo de sessionStorage</h1>
+    <p>Este exemplo usa o sessionStorage para armazenar um valor.</p>
+    
+    <script>
+        var valor = sessionStorage.getItem("meuValor");
+        var valor2 = localStorage.getItem("meuValor2");
+
+
+        document.write("<p>inicial: " + valor + "</p>");
+        document.write("<p>inicial2: " + valor2 + "</p>");
+
+
+        if (valor == null)
+            valor = 0;
+        else
+            valor = parseInt(valor) + 1;
+
+        
+        if (valor2 == null)
+            valor2 = 0;
+        else
+            valor2 = parseInt(valor2) + 1;
+
+
+
+        sessionStorage.setItem("meuValor", valor);
+        localStorage.setItem("meuValor2", valor2);
+
+        document.write("<p>O valor armazenado é: " + valor + "</p>");
+        document.write("<p>O valor armazenado2 é: " + valor2 + "</p>");
+    </script>
+  </body>
+</html>
+
