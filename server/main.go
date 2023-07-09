@@ -24,7 +24,7 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/realm/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Cache-Control", "no-cache")
 		if strings.HasSuffix(r.URL.Path, ".wasm") {
 			w.Header().Set("content-type", "application/wasm")
