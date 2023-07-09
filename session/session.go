@@ -1,9 +1,10 @@
 package session
 
 import (
-	"crypto/rand"
 	"net/http"
 	"time"
+
+	"realm/util"
 )
 
 type Control struct {
@@ -80,7 +81,7 @@ func (c *Control) Create() (string, *SessionData) {
 		ExpireAt: time.Now().Add(3 * time.Hour),
 	}
 
-	return RandomID(), sessionData
+	return util.RandomID(), sessionData
 }
 
 func (c *Control) RemoveExpired() {
@@ -89,18 +90,4 @@ func (c *Control) RemoveExpired() {
 			delete(c.SessionDataMap, k)
 		}
 	}
-}
-
-func RandomID() string {
-	const (
-		length  = 16
-		charset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-	)
-	lenCharset := byte(len(charset))
-	b := make([]byte, length)
-	rand.Read(b)
-	for i := 0; i < length; i++ {
-		b[i] = charset[b[i]%lenCharset]
-	}
-	return string(b)
 }

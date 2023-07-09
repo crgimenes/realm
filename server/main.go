@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/rand"
 	"embed"
 	"io/fs"
 	"log"
@@ -10,6 +9,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"realm/util"
 
 	"nhooyr.io/websocket"
 )
@@ -101,20 +102,6 @@ func parseMessage(userID string, conn *websocket.Conn, buffer []byte) error {
 	return nil
 }
 
-func randomID() string {
-	const (
-		length  = 16
-		charset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-	)
-	lenCharset := byte(len(charset))
-	b := make([]byte, length)
-	rand.Read(b)
-	for i := 0; i < length; i++ {
-		b[i] = charset[b[i]%lenCharset]
-	}
-	return string(b)
-}
-
 func websocketHandler(w http.ResponseWriter, r *http.Request) {
 	var (
 		conn   *websocket.Conn
@@ -137,7 +124,7 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 		nick:      "anonymous",
 		x:         0,
 		y:         0,
-		sessionID: randomID(),
+		sessionID: util.RandomID(),
 	}
 
 	addUser(user.sessionID, user)
@@ -174,13 +161,17 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 	}()
 }
 
+func forumHandler(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("Hello, World!"))
+}
+
 func main() {
 
 	assetsRFS, _ := fs.Sub(assets, "assets")
 	var assetsFS = http.FS(assetsRFS)
 
 	fs := http.FileServer(assetsFS)
-	log.Print("Serving on http://localhost:8888")
+	log.Print("Serving on :8888")
 
 	mux := http.NewServeMux()
 
@@ -192,9 +183,15 @@ func main() {
 		}
 		fs.ServeHTTP(w, r)
 	})
+	mux.HandleFunc("/forum/", forumHandler)
 
-	err := http.ListenAndServe(":8888", mux)
-	if err != nil {
-		log.Fatal(err)
+	s := &http.Server{
+		Handler:        mux,
+		Addr:           ":8888",
+		ReadTimeout:    5 * time.Second,
+		WriteTimeout:   5 * time.Second,
+		MaxHeaderBytes: 1 << 20,
 	}
+
+	log.Fatal(s.ListenAndServe())
 }

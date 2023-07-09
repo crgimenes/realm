@@ -39,6 +39,7 @@ func parseMessage(buffer []byte) error {
 		log.Println(buffer[1:])
 	default:
 		log.Printf("unknown message: %s\n", string(buffer))
+	}
 	return nil
 }
 
