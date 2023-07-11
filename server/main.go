@@ -32,44 +32,31 @@ type Config struct {
 	Port               int    `ini:"port" cfg:"port" cfgDefault:"8080" cfgHelper:"Port"`
 }
 
-type sessionData struct {
-	OAuthProvider string
-	UserName      string
-	AvatarURL     string
-	SessionID     string
-}
-
 var (
-	sc *session.Control
-
 	//go:embed assets/*
 	assets embed.FS
 )
 
 // ///////////////////////////////////
 func homeHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("homeHandler")
+	log.Println("homeHandler")
 
-	sid, sd, ok := sc.Get(r)
+	sid, sd, ok := session.SC.Get(r)
 	if !ok {
-		fmt.Println("1 session not found")
-		sid, sd = sc.Create()
+		log.Println("1 session not found")
+		sid, sd = session.SC.Create()
 	}
 
 	if sd.Data != nil {
-		sdAUX, ok := sd.Data.(*sessionData)
-		if !ok {
-			log.Fatal("type assertion failed sessionData")
-		}
-		fmt.Println("name:", sdAUX.UserName)
+		log.Println("name:", sd.Data.UserName)
 	} else {
-		fmt.Println("sd.Data is nil")
+		log.Println("sd.Data is nil")
 	}
 
 	// renew session
-	sc.Save(w, sid, sd)
+	session.SC.Save(w, sid, sd)
 
-	fmt.Println("sid:", sid)
+	log.Println("sid:", sid)
 	//////////////////////////
 
 	index, err := assets.ReadFile("assets/forum.html")
@@ -82,22 +69,12 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	var (
-		sdAUX *sessionData
-	)
-
-	if sd.Data != nil {
-		sdAUX, ok = sd.Data.(*sessionData)
-		if !ok {
-			log.Fatal("type assertion failed sessionData")
-		}
-	}
 	data := struct {
-		SessionData    *sessionData
+		SessionData    *session.Data
 		GitHubLoginURL string
 		LogoutURL      string
 	}{
-		SessionData:    sdAUX,
+		SessionData:    sd.Data,
 		GitHubLoginURL: "/forum/github/login",
 		LogoutURL:      "/forum/logout",
 	}
@@ -109,8 +86,8 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func logoutHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("logoutHandler")
-	sid, sd, ok := sc.Get(r)
+	log.Println("logoutHandler")
+	sid, sd, ok := session.SC.Get(r)
 	if !ok {
 		http.Redirect(w, r, "/forum", http.StatusFound)
 		return
@@ -119,18 +96,18 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 	sd.Data = nil
 
 	// remove session
-	sc.Delete(w, sid)
+	session.SC.Delete(w, sid)
 
 	http.Redirect(w, r, "/forum", http.StatusFound)
 }
 
 func issueSession() http.Handler {
-	fmt.Println("issueSession")
+	log.Println("issueSession")
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		sid, sd, ok := sc.Get(r)
+		sid, sd, ok := session.SC.Get(r)
 		if !ok {
-			fmt.Println("2 session not found")
-			sid, sd = sc.Create()
+			log.Println("2 session not found")
+			sid, sd = session.SC.Create()
 		}
 
 		ctx := r.Context()
@@ -140,19 +117,19 @@ func issueSession() http.Handler {
 			return
 		}
 
-		fmt.Println("sid:", sid)
-		fmt.Println("githubUser id.........:", *githubUser.ID)
-		fmt.Println("githubUser login......:", *githubUser.Login)
-		fmt.Println("githubUser email......:", *githubUser.Email)
-		fmt.Println("githubUser name.......:", *githubUser.Name)
-		fmt.Println("githubUser avatar.....:", *githubUser.AvatarURL)
-		fmt.Println("githubUser url........:", *githubUser.URL)
-		fmt.Println("githubUser html url...:", *githubUser.HTMLURL)
-		fmt.Println("githubUser followers..:", *githubUser.Followers)
-		fmt.Println("githubUser following..:", *githubUser.Following)
-		fmt.Println("githubUser created at.:", *githubUser.CreatedAt)
+		log.Println("sid:", sid)
+		log.Println("githubUser id.........:", *githubUser.ID)
+		log.Println("githubUser login......:", *githubUser.Login)
+		log.Println("githubUser email......:", *githubUser.Email)
+		log.Println("githubUser name.......:", *githubUser.Name)
+		log.Println("githubUser avatar.....:", *githubUser.AvatarURL)
+		log.Println("githubUser url........:", *githubUser.URL)
+		log.Println("githubUser html url...:", *githubUser.HTMLURL)
+		log.Println("githubUser followers..:", *githubUser.Followers)
+		log.Println("githubUser following..:", *githubUser.Following)
+		log.Println("githubUser created at.:", *githubUser.CreatedAt)
 
-		sdAUX := sessionData{
+		sdAUX := session.Data{
 			OAuthProvider: "github",
 			UserName:      *githubUser.Name,
 			AvatarURL:     *githubUser.AvatarURL,
@@ -160,9 +137,9 @@ func issueSession() http.Handler {
 		}
 		sd.Data = &sdAUX
 
-		fmt.Println("name:", sdAUX.UserName)
+		log.Println("name:", sdAUX.UserName)
 		// renew session
-		sc.Save(w, sid, sd)
+		session.SC.Save(w, sid, sd)
 
 		http.Redirect(w, r, "/forum", http.StatusFound)
 	}
@@ -177,23 +154,23 @@ func main() {
 	config.File = "config.ini"
 	err := config.Parse(&cfg)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 
 	log.Printf("database name: %s\n", cfg.DatabaseName)
-	err = sqlite.New(cfg.DatabaseName)
+	err = sqlite.Open(cfg.DatabaseName)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	const cookieName = "forum_session"
-	sc = session.New(cookieName)
+	session.New(cookieName)
 
 	go func() {
 		for {
 			time.Sleep(5 * time.Minute)
-			sc.RemoveExpired()
+			session.SC.RemoveExpired()
 		}
 	}()
 
@@ -243,18 +220,16 @@ func main() {
 
 	// recebe post de usuário
 	mux.HandleFunc("/forum/post", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("postHandler")
-		sid, sd, ok := sc.Get(r)
+		log.Println("postHandler")
+		sid, sd, ok := session.SC.Get(r)
 		if !ok {
 			http.Redirect(w, r, "/forum", http.StatusFound)
 			return
 		}
 
-		sdAUX, ok := sd.Data.(*sessionData)
-		if !ok {
-			log.Fatal("type assertion failed sessionData")
+		if sd.Data != nil {
+			log.Println("name:", sd.Data.UserName)
 		}
-		fmt.Println("name:", sdAUX.UserName)
 
 		var post string
 		err := json.NewDecoder(r.Body).Decode(&post)
@@ -263,8 +238,8 @@ func main() {
 			return
 		}
 
-		fmt.Println("sid:", sid)
-		fmt.Println("post:", post)
+		log.Println("sid:", sid)
+		log.Println("post:", post)
 	})
 
 	s := &http.Server{

@@ -7,18 +7,29 @@ import (
 	"realm/util"
 )
 
+var (
+	SC *Control
+)
+
 type Control struct {
 	cookieName     string
 	SessionDataMap map[string]SessionData
 }
 
-type SessionData struct {
-	ExpireAt time.Time
-	Data     any
+type Data struct {
+	OAuthProvider string
+	UserName      string
+	AvatarURL     string
+	SessionID     string
 }
 
-func New(cookieName string) *Control {
-	return &Control{
+type SessionData struct {
+	ExpireAt time.Time
+	Data     *Data
+}
+
+func New(cookieName string) {
+	SC = &Control{
 		cookieName:     cookieName,
 		SessionDataMap: make(map[string]SessionData),
 	}
