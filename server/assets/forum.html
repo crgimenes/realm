@@ -125,11 +125,11 @@ menu
     scrollToBottom();
 
     // POST
-    fetch("http://localhost:8080/forum/port", {
+    fetch("http://sp.crg.eti.br/forum/post", {
       method: "POST",
       body: JSON.stringify({ input: inputValue }),
       headers: {
-        "forum_session": "{{.SessionData.SessionID}}",
+        "forum_session": "{{if .SessionData}}{{.SessionData.SessionID}}{{end}}",
         "Content-Type": "application/json",
       },
     });

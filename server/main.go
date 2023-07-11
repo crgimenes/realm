@@ -11,6 +11,7 @@ import (
 	"text/template"
 	"time"
 
+	"realm/db/sqlite"
 	"realm/handler"
 	"realm/session"
 
@@ -27,7 +28,7 @@ type Config struct {
 	GithubClientID     string `ini:"github_client_id" cfg:"github_client_id" cfgRequired:"true" cfgHelper:"Github Client ID"`
 	GithubClientSecret string `ini:"github_client_secret" cfg:"github_client_secret" cfgRequired:"true" cfgHelper:"Github Client Secret"`
 	GithubCallbackURL  string `ini:"github_callback_url" cfg:"github_callback_url" cfgRequired:"true" cfgHelper:"Github Callback URL"`
-	DatabaseURL        string `ini:"database_url" cfg:"database_url" cfgRequired:"true" cfgHelper:"Database URL"`
+	DatabaseName       string `ini:"database_name" cfg:"database_name" cfgRequired:"true" cfgHelper:"Database Name"`
 	Port               int    `ini:"port" cfg:"port" cfgDefault:"8080" cfgHelper:"Port"`
 }
 
@@ -71,12 +72,12 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("sid:", sid)
 	//////////////////////////
 
-	index, err := assets.ReadFile("assets/index.html")
+	index, err := assets.ReadFile("assets/forum.html")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	t, err := template.New("index.html").Parse(string(index))
+	t, err := template.New("forum.html").Parse(string(index))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -180,6 +181,12 @@ func main() {
 		return
 	}
 
+	log.Printf("database name: %s\n", cfg.DatabaseName)
+	err = sqlite.New(cfg.DatabaseName)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	const cookieName = "forum_session"
 	sc = session.New(cookieName)
 
@@ -198,7 +205,8 @@ func main() {
 	}
 
 	// state param cookies require HTTPS by default; disable for localhost development
-	stateConfig := gologin.DebugOnlyCookieConfig
+	//stateConfig := gologin.DebugOnlyCookieConfig
+	stateConfig := gologin.DefaultCookieConfig
 
 	assetsRFS, _ := fs.Sub(assets, "assets")
 	var assetsFS = http.FS(assetsRFS)
@@ -216,19 +224,19 @@ func main() {
 	})
 
 	mux.HandleFunc("/ws", handler.Websocket)
-	mux.HandleFunc("/forum/", handler.Forum)
+	//mux.HandleFunc("/forum/", handler.Forum)
 
-	mux.HandleFunc("/", homeHandler)
+	mux.HandleFunc("/forum/", homeHandler)
 	//mux.HandleFunc("/login", loginHandler)
-	mux.HandleFunc("/logout", logoutHandler)
+	mux.HandleFunc("/forum/logout", logoutHandler)
 
 	mux.Handle(
-		"/github/login",
+		"/forum/github/login",
 		github.StateHandler(
 			stateConfig,
 			github.LoginHandler(oauth2Config, nil)))
 	mux.Handle(
-		"/github/callback",
+		"/forum/github/callback",
 		github.StateHandler(
 			stateConfig,
 			github.CallbackHandler(oauth2Config, issueSession(), nil)))
@@ -266,8 +274,6 @@ func main() {
 		WriteTimeout:   5 * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
-
-	println(cfg.DatabaseURL)
 
 	log.Printf("Listening on port %d\n", cfg.Port)
 	log.Fatal(s.ListenAndServe())

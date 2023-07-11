@@ -1,23 +1,25 @@
 package sqlite
 
 import (
+	"strings"
+
 	"github.com/jmoiron/sqlx"
 	_ "modernc.org/sqlite"
 )
 
-type Sqlite struct {
-	db *sqlx.DB
-}
+var (
+	DB *sqlx.DB
+)
 
-func New(filename string) (*Sqlite, error) {
-	databaseName := filename + ".db"
-	db, err := sqlx.Connect("sqlite", databaseName)
-	if err != nil {
-		return nil, err
-	}
+func New(filename string) error {
+	var err error
 
-	s := &Sqlite{
-		db: db,
-	}
-	return s, err
+	databaseName := strings.Join([]string{
+		"file:",
+		filename,
+		"?cache=shared&mode=rwc"}, "")
+
+	DB, err = sqlx.Connect("sqlite", databaseName)
+
+	return err
 }
