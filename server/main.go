@@ -11,9 +11,10 @@ import (
 	"text/template"
 	"time"
 
-	"realm/db/sqlite"
 	"realm/handler"
+	"realm/model"
 	"realm/session"
+	"realm/sqlite"
 
 	"github.com/dghubble/gologin/v2"
 	"github.com/dghubble/gologin/v2/github"
@@ -47,11 +48,10 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 		sid, sd = session.SC.Create()
 	}
 
-	if sd.Data != nil {
-		log.Println("name:", sd.Data.UserName)
-	} else {
-		log.Println("sd.Data is nil")
+	if !sd.LoggedIn {
+		log.Println("not logged in")
 	}
+	log.Println("name:", sd.UserName)
 
 	// renew session
 	session.SC.Save(w, sid, sd)
@@ -70,11 +70,11 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := struct {
-		SessionData    *session.Data
+		SessionData    *model.SessionData
 		GitHubLoginURL string
 		LogoutURL      string
 	}{
-		SessionData:    sd.Data,
+		SessionData:    sd,
 		GitHubLoginURL: "/forum/github/login",
 		LogoutURL:      "/forum/logout",
 	}
@@ -93,7 +93,7 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sd.Data = nil
+	sd.LoggedIn = false
 
 	// remove session
 	session.SC.Delete(w, sid)
@@ -129,13 +129,15 @@ func issueSession() http.Handler {
 		log.Println("githubUser following..:", *githubUser.Following)
 		log.Println("githubUser created at.:", *githubUser.CreatedAt)
 
-		sdAUX := session.Data{
+		sdAUX := model.SessionData{
 			OAuthProvider: "github",
 			UserName:      *githubUser.Name,
 			AvatarURL:     *githubUser.AvatarURL,
 			SessionID:     sid,
+			LoggedIn:      true,
+			ExpireAt:      time.Now().Add(24 * time.Hour),
 		}
-		sd.Data = &sdAUX
+		sd = &sdAUX
 
 		log.Println("name:", sdAUX.UserName)
 		// renew session
@@ -227,8 +229,8 @@ func main() {
 			return
 		}
 
-		if sd.Data != nil {
-			log.Println("name:", sd.Data.UserName)
+		if sd.UserName != "" {
+			log.Println("name:", sd.UserName)
 		}
 
 		var post string

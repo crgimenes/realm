@@ -55,7 +55,7 @@ menu
 -->
 
   <div id="chat_menu">
-    {{if .SessionData}}
+    {{if .SessionData.LoggedIn}}
     Logged in as {{.SessionData.UserName}} |
     <a href={{.LogoutURL}}>Logout</a>
     {{else}}
@@ -129,7 +129,7 @@ menu
       method: "POST",
       body: JSON.stringify({ input: inputValue }),
       headers: {
-        "forum_session": "{{if .SessionData}}{{.SessionData.SessionID}}{{end}}",
+        "forum_session": "{{if .SessionData.LoggedIn}}{{.SessionData.SessionID}}{{end}}",
         "Content-Type": "application/json",
       },
     });

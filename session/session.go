@@ -1,41 +1,37 @@
 package session
 
 import (
+	"log"
 	"net/http"
 	"time"
 
+	"realm/model"
+	"realm/sqlite"
 	"realm/util"
 )
 
 var (
-	SC *Control
+	SC *Control // Session Control
 )
 
 type Control struct {
-	cookieName     string
-	SessionDataMap map[string]SessionData
-}
-
-type Data struct {
-	OAuthProvider string
-	UserName      string
-	AvatarURL     string
-	SessionID     string
-}
-
-type SessionData struct {
-	ExpireAt time.Time
-	Data     *Data
+	cookieName string
+	DataMap    map[string]model.SessionData
 }
 
 func New(cookieName string) {
+	dm, err := sqlite.DB.LoadAllSessions()
+	if err != nil {
+		panic(err)
+	}
+
 	SC = &Control{
-		cookieName:     cookieName,
-		SessionDataMap: make(map[string]SessionData),
+		cookieName: cookieName,
+		DataMap:    dm,
 	}
 }
 
-func (c *Control) Get(r *http.Request) (string, *SessionData, bool) {
+func (c *Control) Get(r *http.Request) (string, *model.SessionData, bool) {
 	cookies := r.Cookies()
 	if len(cookies) == 0 {
 		return "", nil, false
@@ -46,13 +42,17 @@ func (c *Control) Get(r *http.Request) (string, *SessionData, bool) {
 		return "", nil, false
 	}
 
-	s, ok := c.SessionDataMap[cookie.Value]
+	s, ok := c.DataMap[cookie.Value]
 	if !ok {
 		return "", nil, false
 	}
 
 	if s.ExpireAt.Before(time.Now()) {
-		delete(c.SessionDataMap, cookie.Value)
+		delete(c.DataMap, cookie.Value)
+		err = sqlite.DB.DeleteSession(cookie.Value)
+		if err != nil {
+			log.Printf("DeleteSession: %v\n", err)
+		}
 		return "", nil, false
 	}
 
@@ -60,7 +60,13 @@ func (c *Control) Get(r *http.Request) (string, *SessionData, bool) {
 }
 
 func (c *Control) Delete(w http.ResponseWriter, id string) {
-	delete(c.SessionDataMap, id)
+	delete(c.DataMap, id)
+
+	err := sqlite.DB.DeleteSession(id)
+	if err != nil {
+		log.Printf("DeleteSession: %v\n", err)
+	}
+
 	cookie := http.Cookie{
 		Name:   c.cookieName,
 		Value:  "",
@@ -69,8 +75,8 @@ func (c *Control) Delete(w http.ResponseWriter, id string) {
 	http.SetCookie(w, &cookie)
 }
 
-func (c *Control) Save(w http.ResponseWriter, id string, sessionData *SessionData) {
-	expireAt := time.Now().Add(3 * time.Hour)
+func (c *Control) Save(w http.ResponseWriter, id string, sessionData *model.SessionData) {
+	expireAt := time.Now().Add(24 * time.Hour)
 	cookie := &http.Cookie{
 		Path:     "/",
 		Name:     c.cookieName,
@@ -82,23 +88,42 @@ func (c *Control) Save(w http.ResponseWriter, id string, sessionData *SessionDat
 	}
 
 	sessionData.ExpireAt = expireAt
-	c.SessionDataMap[id] = *sessionData
+	c.DataMap[id] = *sessionData
+
+	err := sqlite.DB.SaveSession(id, sessionData)
+	if err != nil {
+		log.Printf("SaveSession: %v\n", err)
+	}
 
 	http.SetCookie(w, cookie)
 }
 
-func (c *Control) Create() (string, *SessionData) {
-	sessionData := &SessionData{
+func (c *Control) Create() (string, *model.SessionData) {
+	sessionData := &model.SessionData{
 		ExpireAt: time.Now().Add(3 * time.Hour),
 	}
 
-	return util.RandomID(), sessionData
+	rand := util.RandomID()
+
+	c.DataMap[rand] = *sessionData
+
+	err := sqlite.DB.SaveSession(rand, sessionData)
+	if err != nil {
+		log.Printf("SaveSession: %v\n", err)
+	}
+
+	return rand, sessionData
 }
 
 func (c *Control) RemoveExpired() {
-	for k, v := range c.SessionDataMap {
+	for k, v := range c.DataMap {
 		if v.ExpireAt.Before(time.Now()) {
-			delete(c.SessionDataMap, k)
+			delete(c.DataMap, k)
 		}
+	}
+
+	err := sqlite.DB.DeleteExpiredSessions()
+	if err != nil {
+		log.Printf("DeleteExpiredSessions: %v\n", err)
 	}
 }
