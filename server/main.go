@@ -166,6 +166,11 @@ func main() {
 		log.Fatal(err)
 	}
 
+	err = sqlite.DB.CreateTables()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	const cookieName = "forum_session"
 	session.New(cookieName)
 
