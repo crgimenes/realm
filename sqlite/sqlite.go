@@ -141,7 +141,24 @@ func (s *Sqlite) LoadAllSessions() (map[string]model.SessionData, error) {
 }
 
 /////////////////////////////////////////////////////
+// user
+// create user
+// update user
+// delete user
+// get user
+// get user by name
+// get user by email
+// TODO: link user and session
+/////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////
 // forum
+// list all forums
+// list all categories
+// list all forums in a category
+// list all threads in a forum
+// list all posts in a thread
+// list all posts by a user
 /////////////////////////////////////////////////////
 
 func (s *Sqlite) CreateForumTables() error {
