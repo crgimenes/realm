@@ -139,3 +139,37 @@ func (s *Sqlite) LoadAllSessions() (map[string]model.SessionData, error) {
 
 	return sessionDataMap, nil
 }
+
+/////////////////////////////////////////////////////
+// forum
+/////////////////////////////////////////////////////
+
+func (s *Sqlite) CreateForumTables() error {
+	sqlStatement := `
+	create table if not exists forum (
+		forum_id integer primary key,
+		forum_name text not null,
+		forum_description text not null,
+		forum_icon_url text not null,
+		forum_created_at datetime not null,
+		forum_updated_at datetime not null,
+		forum_deleted_at datetime,
+		forum_deleted integer not null,
+		forum_order integer not null,
+		forum_category_id integer not null,
+		forum_category_order integer not null,
+		forum_category_name text not null,
+		forum_category_description text not null,
+		forum_category_icon_url text not null,
+		forum_category_created_at datetime not null,
+		forum_category_updated_at datetime not null,
+		forum_category_deleted_at datetime,
+		forum_category_deleted integer not null,
+		forum_category_order integer not null
+	);`
+
+	_, err := s.DB.Exec(sqlStatement)
+
+	return err
+
+}
