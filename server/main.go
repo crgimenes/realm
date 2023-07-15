@@ -11,6 +11,7 @@ import (
 	"text/template"
 	"time"
 
+	"realm/globalconst"
 	"realm/handler"
 	"realm/model"
 	"realm/session"
@@ -171,8 +172,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	const cookieName = "forum_session"
-	session.New(cookieName)
+	session.New(globalconst.CookieName)
 
 	go func() {
 		for {
