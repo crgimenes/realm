@@ -76,6 +76,10 @@ func parseMessage(userID string, conn *websocket.Conn, buffer []byte) error {
 	p := buffer[0]
 
 	switch p {
+	case '!':
+		log.Printf("Ping received from %s, sessionID: %s\n",
+			userID,
+			connectedUsers[userID].sessionID)
 	case '~':
 		buffer[0] = '.' //Replace ~ with .
 		for _, user := range connectedUsers {

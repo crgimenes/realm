@@ -100,7 +100,7 @@ func sendLoop() {
 	for {
 		select {
 		case <-time.After(1 * time.Second):
-			err = directSend([]byte("ping"))
+			err = directSend([]byte("!ping"))
 			if err != nil {
 				log.Println(err)
 				return
