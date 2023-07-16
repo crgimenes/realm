@@ -2,8 +2,8 @@ package main
 
 import (
 	"embed"
-	"encoding/json"
 	"fmt"
+	"io"
 	"io/fs"
 	"log"
 	"net/http"
@@ -40,8 +40,10 @@ var (
 )
 
 // ///////////////////////////////////
-func homeHandler(w http.ResponseWriter, r *http.Request) {
+func forumHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("homeHandler")
+
+	log.Println("r.URL.Path:", r.URL.Path)
 
 	sid, sd, ok := session.SC.Get(r)
 	if !ok {
@@ -120,13 +122,14 @@ func issueSession() http.Handler {
 
 		// TODO: validar todos os campos, se for nil trocar por um valor padrão
 		log.Println("sid:", sid)
-		log.Printf("githubUser: %#v\n", githubUser)
+		//log.Printf("githubUser: %#v\n", githubUser)
 		log.Println("ID:", *githubUser.ID)
 		log.Println("Login:", *githubUser.Login)
 
 		/////////////////
 		// save user data
 		user := model.User{
+			ID:            sd.UserID,
 			UserName:      *githubUser.Name,
 			AvatarURL:     *githubUser.AvatarURL,
 			OAuthProvider: "github",
@@ -142,11 +145,13 @@ func issueSession() http.Handler {
 		// save session data
 		sdAUX := model.SessionData{
 			OAuthProvider: "github",
+			OAuthUserID:   fmt.Sprintf("%d", *githubUser.ID),
 			UserName:      *githubUser.Name,
 			AvatarURL:     *githubUser.AvatarURL,
 			SessionID:     sid,
 			LoggedIn:      true,
 			ExpireAt:      time.Now().Add(globalconst.TimeToExpire * time.Second),
+			UserID:        user.ID,
 		}
 		sd = &sdAUX
 
@@ -223,10 +228,7 @@ func main() {
 	})
 
 	mux.HandleFunc("/ws", handler.Websocket)
-	//mux.HandleFunc("/forum/", handler.Forum)
-
-	mux.HandleFunc("/forum/", homeHandler)
-	//mux.HandleFunc("/login", loginHandler)
+	mux.HandleFunc("/forum/", forumHandler)
 	mux.HandleFunc("/forum/logout", logoutHandler)
 
 	mux.Handle(
@@ -253,15 +255,19 @@ func main() {
 			log.Println("name:", sd.UserName)
 		}
 
-		var post string
-		err := json.NewDecoder(r.Body).Decode(&post)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+		post := ""
+		if r.Method == http.MethodPost {
+			b, err := io.ReadAll(r.Body)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			post = string(b)
 		}
 
 		log.Println("sid:", sid)
 		log.Println("post:", post)
+
 	})
 
 	s := &http.Server{

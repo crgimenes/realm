@@ -2,7 +2,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>golang chat</title>
+  <title>golang forum</title>
   <link rel="stylesheet" href="https://crg.eti.br/crg.css">
 </head>
 
@@ -36,7 +36,7 @@
       background-color: #fff;
     }
 
-    #chat_menu {
+    #forum_menu {
       position: fixed;
       top: 0;
       left: 0;
@@ -54,7 +54,7 @@
 menu
 -->
 
-  <div id="chat_menu">
+  <div id="forum_menu">
     {{if .SessionData.LoggedIn}}
     Logged in as {{.SessionData.UserName}} |
     <a href={{.LogoutURL}}>Logout</a>
@@ -125,7 +125,7 @@ menu
     scrollToBottom();
 
     // POST
-    fetch("http://sp.crg.eti.br/forum/post", {
+    fetch("https://sp.crg.eti.br/forum/post", {
       method: "POST",
       body: JSON.stringify({ input: inputValue }),
       headers: {

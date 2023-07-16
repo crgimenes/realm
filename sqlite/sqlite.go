@@ -1,6 +1,8 @@
 package sqlite
 
 import (
+	"database/sql"
+	"log"
 	"realm/model"
 	"realm/util"
 	"strings"
@@ -58,7 +60,7 @@ func (s *Sqlite) CreateSessionTables() error {
 func (s *Sqlite) CreateUserTables() error {
 	sqlStatement := `
 	create table if not exists user (
-		user_id text primary key,
+		id text primary key,
 		oauth_provider text not null,
 		oauth_user_id text not null,
 		user_name text not null,
@@ -71,13 +73,22 @@ func (s *Sqlite) CreateUserTables() error {
 }
 
 func (s *Sqlite) SaveUser(user *model.User) (model.User, error) {
-	// insert ou update (on conflict) e retorna o user
+
+	u, err := s.GetUserFromOAuthID(user.OAuthProvider, user.OAuthUserID)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			log.Println(err)
+			return *user, err
+		}
+	}
+
+	user.ID = u.ID
 
 	if user.ID == "" {
 		// insert
 		sqlStatement := `
 		insert into user (
-			user_id,
+			id,
 			oauth_provider,
 			oauth_user_id,
 			user_name,
@@ -108,7 +119,7 @@ func (s *Sqlite) SaveUser(user *model.User) (model.User, error) {
 		avatar_url = $2
 	where id = $3;`
 
-	_, err := s.DB.Exec(sqlStatement,
+	_, err = s.DB.Exec(sqlStatement,
 		user.UserName,
 		user.AvatarURL,
 		user.ID)
