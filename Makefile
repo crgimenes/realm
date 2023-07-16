@@ -10,5 +10,10 @@ clean:
 	rm -rf ./realm-client
 	rm -rf ./realm-server-linux
 
-
+install_sp:
+	ssh sp.crg.eti.br "killall -q -9 realm-server-linux;true"
+	scp realm-server-linux sp.crg.eti.br:/home/cesar/
+	ssh sp.crg.eti.br "cd /home/cesar && \
+		source /home/cesar/env.sh && \
+		nohup /home/cesar/realm-server-linux &"
 

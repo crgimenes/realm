@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"realm/globalconst"
 	"realm/model"
 	"realm/sqlite"
 	"realm/util"
@@ -39,6 +40,7 @@ func (c *Control) Get(r *http.Request) (string, *model.SessionData, bool) {
 
 	cookie, err := r.Cookie(c.cookieName)
 	if err != nil {
+		log.Printf("GetCookie: %v\n", err)
 		return "", nil, false
 	}
 
@@ -76,7 +78,7 @@ func (c *Control) Delete(w http.ResponseWriter, id string) {
 }
 
 func (c *Control) Save(w http.ResponseWriter, id string, sessionData *model.SessionData) {
-	expireAt := time.Now().Add(24 * time.Hour)
+	expireAt := time.Now().Add(globalconst.TimeToExpire * time.Second)
 	cookie := &http.Cookie{
 		Path:     "/",
 		Name:     c.cookieName,
@@ -100,7 +102,7 @@ func (c *Control) Save(w http.ResponseWriter, id string, sessionData *model.Sess
 
 func (c *Control) Create() (string, *model.SessionData) {
 	sessionData := &model.SessionData{
-		ExpireAt: time.Now().Add(3 * time.Hour),
+		ExpireAt: time.Now().Add(globalconst.TimeToExpire * time.Second),
 	}
 
 	rand := util.RandomID()

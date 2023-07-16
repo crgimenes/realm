@@ -4,13 +4,11 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"realm/util"
+	"realm/session"
 	"sync"
 	"time"
 
 	"nhooyr.io/websocket"
-
-	"realm/globalconst"
 )
 
 type connectedUser struct {
@@ -109,18 +107,10 @@ func Websocket(w http.ResponseWriter, r *http.Request) {
 		err    error
 	)
 
-	// get cookie
-	cookie, err := r.Cookie(globalconst.CookieName)
-	if err != nil {
-		log.Printf("Cookie: %v\n", err)
-		return
-	}
-
-	// get session
-	sessionID := cookie.Value
-	if sessionID == "" {
-		log.Println("SessionID is empty")
-		sessionID = util.RandomID()
+	sid, sd, ok := session.SC.Get(r)
+	if !ok {
+		log.Println("ws session not found")
+		sid, sd = session.SC.Create()
 	}
 
 	conn, err = websocket.Accept(w, r, &websocket.AcceptOptions{
@@ -134,10 +124,10 @@ func Websocket(w http.ResponseWriter, r *http.Request) {
 
 	user := connectedUser{
 		conn:      conn,
-		nick:      "anonymous",
+		nick:      sd.UserName,
 		x:         0,
 		y:         0,
-		sessionID: sessionID,
+		sessionID: sid,
 	}
 
 	addUser(user.sessionID, user)

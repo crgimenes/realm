@@ -118,17 +118,11 @@ func issueSession() http.Handler {
 			return
 		}
 
+		// TODO: validar todos os campos, se for nil trocar por um valor padrão
 		log.Println("sid:", sid)
-		log.Println("githubUser id.........:", *githubUser.ID)
-		log.Println("githubUser login......:", *githubUser.Login)
-		log.Println("githubUser email......:", *githubUser.Email)
-		log.Println("githubUser name.......:", *githubUser.Name)
-		log.Println("githubUser avatar.....:", *githubUser.AvatarURL)
-		log.Println("githubUser url........:", *githubUser.URL)
-		log.Println("githubUser html url...:", *githubUser.HTMLURL)
-		log.Println("githubUser followers..:", *githubUser.Followers)
-		log.Println("githubUser following..:", *githubUser.Following)
-		log.Println("githubUser created at.:", *githubUser.CreatedAt)
+		log.Printf("githubUser: %#v\n", githubUser)
+		log.Println("ID:", *githubUser.ID)
+		log.Println("Login:", *githubUser.Login)
 
 		sdAUX := model.SessionData{
 			OAuthProvider: "github",
@@ -136,7 +130,7 @@ func issueSession() http.Handler {
 			AvatarURL:     *githubUser.AvatarURL,
 			SessionID:     sid,
 			LoggedIn:      true,
-			ExpireAt:      time.Now().Add(24 * time.Hour),
+			ExpireAt:      time.Now().Add(globalconst.TimeToExpire * time.Second),
 		}
 		sd = &sdAUX
 
