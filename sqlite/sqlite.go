@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"realm/model"
+	"realm/util"
 	"strings"
 
 	"github.com/jmoiron/sqlx"
@@ -36,13 +37,15 @@ func (s *Sqlite) Close() error {
 	return s.DB.Close()
 }
 
-func (s *Sqlite) CreateTables() error {
+func (s *Sqlite) CreateSessionTables() error {
 	sqlStatement := `
 	create table if not exists session (
 		session_id text primary key,
+		user_id text not null,
 		expire_at datetime not null,
 		logged_in integer not null,
 		oauth_provider text not null,
+		oauth_user_id text not null,
 		user_name text not null,
 		avatar_url text not null
 	);`
@@ -52,37 +55,126 @@ func (s *Sqlite) CreateTables() error {
 	return err
 }
 
+func (s *Sqlite) CreateUserTables() error {
+	sqlStatement := `
+	create table if not exists user (
+		user_id text primary key,
+		oauth_provider text not null,
+		oauth_user_id text not null,
+		user_name text not null,
+		avatar_url text not null
+	);`
+
+	_, err := s.DB.Exec(sqlStatement)
+
+	return err
+}
+
+func (s *Sqlite) SaveUser(user *model.User) (model.User, error) {
+	// insert ou update (on conflict) e retorna o user
+
+	if user.ID == "" {
+		// insert
+		sqlStatement := `
+		insert into user (
+			user_id,
+			oauth_provider,
+			oauth_user_id,
+			user_name,
+			avatar_url
+		) values (
+			$1,
+			$2,
+			$3,
+			$4,
+			$5
+		);`
+
+		user.ID = util.RandomID()
+		_, err := s.DB.Exec(sqlStatement,
+			user.ID,
+			user.OAuthProvider,
+			user.OAuthUserID,
+			user.UserName,
+			user.AvatarURL)
+
+		return *user, err
+	}
+
+	// update
+	sqlStatement := `
+	update user set
+		user_name = $1,
+		avatar_url = $2
+	where id = $3;`
+
+	_, err := s.DB.Exec(sqlStatement,
+		user.UserName,
+		user.AvatarURL,
+		user.ID)
+
+	return *user, err
+}
+
+func (s *Sqlite) GetUserFromOAuthID(oauthProvider string, oauthUserID string) (*model.User, error) {
+	sqlStatement := `select
+		id,
+		oauth_provider,
+		oauth_user_id,
+		user_name,
+		avatar_url
+	from user 
+	where oauth_provider = $1 
+	and oauth_user_id = $2;`
+
+	var user model.User
+	err := s.DB.Get(&user,
+		sqlStatement,
+		oauthProvider, // 1
+		oauthUserID)   // 2
+
+	return &user, err
+}
+
 func (s *Sqlite) SaveSession(sessionID string, sd *model.SessionData) error {
 	// insert ou update
 	sqlStatement := `
 	insert into session (
 		session_id,			-- 1
-		expire_at,			-- 2
-		logged_in,			-- 3
-		oauth_provider,		-- 4
-		user_name,			-- 5
-		avatar_url			-- 6
+		user_id,			-- 2
+		expire_at,			-- 3
+		logged_in,			-- 4
+		oauth_provider,		-- 5
+		oauth_user_id,		-- 6
+		user_name,			-- 7
+		avatar_url			-- 8
 	) values (
 		$1,
 		$2,
 		$3,
 		$4,
 		$5,
-		$6
+		$6,
+		$7,
+		$8
 	) on conflict(session_id) do update set
-		expire_at = $2,
-		logged_in = $3,
-		oauth_provider = $4,
-		user_name = $5,
-		avatar_url = $6;`
+		user_id = $2,
+		expire_at = $3,
+		logged_in = $4,
+		oauth_provider = $5,
+		oauth_user_id = $6,
+		user_name = $7,
+		avatar_url = $8;`
 
 	_, err := s.DB.Exec(sqlStatement,
 		sessionID,        // 1
-		sd.ExpireAt,      // 2
-		sd.LoggedIn,      // 3
-		sd.OAuthProvider, // 4
-		sd.UserName,      // 5
-		sd.AvatarURL)     // 6
+		sd.UserID,        // 2
+		sd.ExpireAt,      // 3
+		sd.LoggedIn,      // 4
+		sd.OAuthProvider, // 5
+		sd.OAuthUserID,   // 6
+		sd.UserName,      // 7
+		sd.AvatarURL)     // 8
 
 	return err
 }
@@ -123,7 +215,7 @@ func (s *Sqlite) DeleteAllSessions() error {
 func (s *Sqlite) LoadAllSessions() (map[string]model.SessionData, error) {
 
 	var (
-		sqlStatement   = `select * from session;`
+		sqlStatement   = `select * from session where expire_at > datetime('now');`
 		sessionDataMap = make(map[string]model.SessionData)
 		sessionData    []model.SessionData
 		err            error
@@ -138,55 +230,4 @@ func (s *Sqlite) LoadAllSessions() (map[string]model.SessionData, error) {
 	}
 
 	return sessionDataMap, nil
-}
-
-/////////////////////////////////////////////////////
-// user
-// create user
-// update user
-// delete user
-// get user
-// get user by name
-// get user by email
-// TODO: link user and session
-/////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////
-// forum
-// list all forums
-// list all categories
-// list all forums in a category
-// list all threads in a forum
-// list all posts in a thread
-// list all posts by a user
-/////////////////////////////////////////////////////
-
-func (s *Sqlite) CreateForumTables() error {
-	sqlStatement := `
-	create table if not exists forum (
-		forum_id integer primary key,
-		forum_name text not null,
-		forum_description text not null,
-		forum_icon_url text not null,
-		forum_created_at datetime not null,
-		forum_updated_at datetime not null,
-		forum_deleted_at datetime,
-		forum_deleted integer not null,
-		forum_order integer not null,
-		forum_category_id integer not null,
-		forum_category_order integer not null,
-		forum_category_name text not null,
-		forum_category_description text not null,
-		forum_category_icon_url text not null,
-		forum_category_created_at datetime not null,
-		forum_category_updated_at datetime not null,
-		forum_category_deleted_at datetime,
-		forum_category_deleted integer not null,
-		forum_category_order integer not null
-	);`
-
-	_, err := s.DB.Exec(sqlStatement)
-
-	return err
-
 }

@@ -124,6 +124,22 @@ func issueSession() http.Handler {
 		log.Println("ID:", *githubUser.ID)
 		log.Println("Login:", *githubUser.Login)
 
+		/////////////////
+		// save user data
+		user := model.User{
+			UserName:      *githubUser.Name,
+			AvatarURL:     *githubUser.AvatarURL,
+			OAuthProvider: "github",
+			OAuthUserID:   fmt.Sprintf("%d", *githubUser.ID),
+		}
+
+		user, err = sqlite.DB.SaveUser(&user)
+		if err != nil {
+			log.Println(err)
+		}
+
+		///////////////////
+		// save session data
 		sdAUX := model.SessionData{
 			OAuthProvider: "github",
 			UserName:      *githubUser.Name,
@@ -161,7 +177,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = sqlite.DB.CreateTables()
+	err = sqlite.DB.CreateSessionTables()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = sqlite.DB.CreateUserTables()
 	if err != nil {
 		log.Fatal(err)
 	}
