@@ -15,8 +15,6 @@
       right: 0;
       background-color: #f1f1f1;
       padding: 20px;
-
-
       margin: 0 auto;
       max-width: 1024px;
     }
@@ -36,17 +34,11 @@
       background-color: #fff;
     }
 
-    #forum_menu {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
+    #forumMenu {
       background-color: #000;
       padding: 20px;
-
       margin: 0 auto;
       max-width: 1024px;
-
     }
   </style>
 
@@ -54,7 +46,7 @@
 menu
 -->
 
-  <div id="forum_menu">
+  <div id="forumMenu">
     {{if .SessionData.LoggedIn}}
     Logged in as {{.SessionData.UserName}} |
     <a href={{.LogoutURL}}>Logout</a>
