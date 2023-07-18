@@ -187,6 +187,16 @@ func main() {
 		log.Fatal(err)
 	}
 
+	err = sqlite.DB.CreateForumTables()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = sqlite.DB.CreateChatTables()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	err = sqlite.DB.CreateUserTables()
 	if err != nil {
 		log.Fatal(err)
