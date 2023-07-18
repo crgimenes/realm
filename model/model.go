@@ -20,3 +20,52 @@ type User struct {
 	UserName      string `db:"user_name"`
 	AvatarURL     string `db:"avatar_url"`
 }
+
+// forum
+
+type Forum struct {
+	Name     string `db:"name"`
+	NameSlug string `db:"name_slug"`
+}
+
+type Thread struct {
+	ID        string    `db:"id"`
+	ForumName string    `db:"forum_name"`
+	Title     string    `db:"title"`
+	Content   string    `db:"content"`
+	UserID    string    `db:"user_id"`
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
+}
+
+type Comment struct {
+	ID        string    `db:"id"`
+	ThreadID  string    `db:"thread_id"`
+	UserID    string    `db:"user_id"`
+	Content   string    `db:"content"`
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
+}
+
+// chat
+
+type ChatRoom struct {
+	Name      string    `db:"name"`
+	NameSlug  string    `db:"name_slug"`
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
+}
+
+type ChatMessage struct {
+	ID        string    `db:"id"`
+	RoomID    string    `db:"room_id"`
+	UserID    string    `db:"user_id"`
+	Content   string    `db:"content"`
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
+}
+
+type Category struct {
+	NameSlug string `db:"name_slug"`
+	Name     string `db:"name"`
+}
