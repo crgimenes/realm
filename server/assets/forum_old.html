@@ -1,0 +1,132 @@
+<html lang="pt-br">
+
+<head>
+  <meta charset="UTF-8">
+  <title>golang forum</title>
+  <link rel="stylesheet" href="https://crg.eti.br/crg.css">
+</head>
+
+<body onscroll="loadOldContent()">
+  <style>
+    #inputFieldBox {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background-color: #f1f1f1;
+      padding: 20px;
+      margin: 0 auto;
+      max-width: 1024px;
+    }
+
+    #inputFieldBox input {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    #inputBackBox {
+      margin: 0;
+      padding: 0;
+      border: 0;
+      background-color: #fff;
+    }
+
+    #forumMenu {
+      background-color: #000;
+      padding: 20px;
+      margin: 0 auto;
+      max-width: 1024px;
+    }
+  </style>
+
+  <!--
+menu
+-->
+
+  <div id="forumMenu">
+    {{if .SessionData.LoggedIn}}
+    Logged in as {{.SessionData.UserName}} |
+    <a href={{.LogoutURL}}>Logout</a>
+    {{else}}
+    <a href={{.GitHubLoginURL}}>Login</a>
+    {{end}}
+  </div>
+  <!--
+
+-->
+
+
+  <div id="inputBackBox"></div>
+
+  <div id="inputFieldBox">
+    <form onsubmit="submitForm(event)">
+      <input type="text" name="inputField">
+    </form>
+  </div>
+</body>
+
+<script>
+
+  function loadOldContent() {
+    if (window.scrollY != 0) {
+      return;
+    }
+    console.log("load old content...");
+
+
+    let newElement = document.createElement('p');
+    newElement.id = 'newElement';
+    newElement.className = 'newElement';
+    newElement.style.color = 'red';
+    newElement.style.fontSize = '20px';
+    const textNode = document.createTextNode("load old content...");
+    newElement.appendChild(textNode);
+    document.body.insertBefore(newElement, document.body.firstChild);
+
+  }
+
+  function insertStringAboveForm(string) {
+    // const form = document.querySelector('form');
+    const form = document.getElementById('inputBackBox');
+    //const newElement = document.createElement('p');
+    let newElement = document.createElement('p');
+    newElement.id = 'newElement';
+    newElement.className = 'newElement';
+    newElement.style.color = 'red';
+    newElement.style.fontSize = '20px';
+
+
+    const textNode = document.createTextNode(string);
+    newElement.appendChild(textNode);
+    form.parentNode.insertBefore(newElement, form);
+  }
+
+  function scrollToBottom() {
+    window.scrollTo(0, document.body.scrollHeight);
+  }
+
+  function submitForm(event) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const inputValue = formData.get("inputField");
+    console.log(inputValue);
+    insertStringAboveForm(inputValue);
+    scrollToBottom();
+
+    // POST
+    fetch("https://sp.crg.eti.br/forum/post", {
+      method: "POST",
+      body: JSON.stringify({ input: inputValue }),
+      headers: {
+        "forum_session": "{{if .SessionData.LoggedIn}}{{.SessionData.SessionID}}{{end}}",
+        "Content-Type": "application/json",
+      },
+    });
+    event.target.reset();
+  }
+</script>
+
+</html>
