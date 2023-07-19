@@ -72,14 +72,21 @@ func forumHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
+	fl, err := sqlite.DB.GetForumList()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	data := struct {
 		SessionData    *model.SessionData
 		GitHubLoginURL string
 		LogoutURL      string
+		ForumList      []model.Forum
 	}{
 		SessionData:    sd,
 		GitHubLoginURL: "/forum/github/login",
 		LogoutURL:      "/forum/logout",
+		ForumList:      fl,
 	}
 	err = t.Execute(w, data)
 	if err != nil {

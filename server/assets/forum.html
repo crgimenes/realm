@@ -17,6 +17,13 @@
     {{end}}
   </div>
 
+  <div class="forum">
+    {{ range $val := .ForumList }}
+    <div class="forumTitle">
+      <a href="/forum/{{ $val.NameSlug }}">{{ $val.Name }}</a>
+    </div>
+    {{ end }}
+  </div>
 
 </body>
 
